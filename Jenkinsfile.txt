@@ -1,0 +1,119 @@
+pipeline {
+    agent { label '' }
+    tools {
+        nodejs 'marshall-nodejs'  // Pastikan Node.js sudah dikonfigurasi di Jenkins
+    }
+
+    environment {
+        DISCORD_WEBHOOK_URL = ' https://discord.com/api/webhooks/1297808209754587156/mzV0ZkU0L0yHY-F4mU7rH6-x0WPKHWmhReagRqwaCk8FsJPEKGcrZW5Rd237LsOoQ2VK'  // Ganti dengan URL webhook Discord Anda
+    }
+
+    stages {
+        stage('Checkout Project') {
+            steps {
+                dir('D:\\SMT 7\\MAGANG\\MARSHALL NEW') {  // Ubah direktori sesuai dengan project lokal Anda
+                    echo 'Checking out local project'
+                }
+            }
+        }
+
+        stage('Run Cypress Tests') {
+            steps {
+                dir('D:\\SMT 7\\MAGANG\\MARSHALL NEW') {  // Ubah direktori sesuai dengan project lokal Anda
+                    // Install Cypress binary
+                    // bat "npx cypress install"
+                    // Jalankan tes Cypress untuk dua file
+                    bat "npx cypress run --browser chrome --spec 'cypress/e2e/AL_beta_marshall.cy.js, cypress/e2e/Coqa_Beta_marshall.cy.js, cypress/e2e/ELib_beta-marshall.cy.js, cypress/e2e/Help_beta_marshall.cy.js, cypress/e2e/MapD_beta_marshall.cy.js, cypress/e2e/RM_beta_marshall.cy.js, cypress/e2e/UEbook_beta_marshall.cy.js, cypress/e2e/ViewReqHis_beta_marshall.cy.js, cypress/e2e/VL_beta_marshall.cy.js, cypress/e2e/GM_beta_marshall.cy.js'"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            script {
+                // Ambil seluruh log (maksimum 1000 baris)
+                def fullLog = currentBuild.rawBuild.getLog(1000)
+                    .collect { it.replaceAll(/\x1B\[.*?m/, '') }  // Bersihkan karakter ANSI
+
+                // Pecah log berdasarkan "Running:" untuk memisahkan bagian setiap file yang diuji
+                def testFileSections = fullLog.join("\n").split("Running:") as List
+
+                // Map untuk menyimpan error per file
+                def fileErrors = [:]
+
+                // Proses log untuk setiap file
+                testFileSections.each { section ->
+                    if (section.contains("cypress/e2e/")) {
+                        def lines = section.split("\n") as List  // Konversi string array ke list
+                        def testFileName = lines[0].trim().split(' ')[0]  // Hanya ambil bagian pertama sebelum spasi
+
+                        // Cari AssertionErrors di bagian log untuk file ini
+                        def assertionErrors = lines.findAll { it.contains('AssertionError') || it.contains('TypeError') }
+
+                        if (!assertionErrors.isEmpty()) {
+                            def fileErrorMessage = "Test failed on ${testFileName}! Error log:\n\n"
+                            def index = 1
+                            assertionErrors.each { error ->
+                                def errorIndex = lines.indexOf(error)
+
+                                // Ambil beberapa baris sebelum error sebagai konteks
+                                def contextLines = errorIndex > 1 ? lines.subList(errorIndex - 1, errorIndex) : lines.subList(0, errorIndex)
+                                def context = contextLines.find { !it.contains("AssertionError") } ?: "Unknown Context"
+
+                                fileErrorMessage += "${index}) ${context.trim()}\n"
+                                fileErrorMessage += "- ${error.trim()}\n\n"
+                                index++
+                            }
+
+                            fileErrors[testFileName] = fileErrorMessage
+                        }
+                    }
+                }
+
+                // Gabungkan pesan error per file
+                def formattedMessage = ""
+                fileErrors.each { fileName, message ->
+                    formattedMessage += message + "\n"
+                }
+
+                // Jika tidak ada AssertionErrors
+                if (formattedMessage.isEmpty()) {
+                    formattedMessage = "No Errors found."
+                }
+
+                // Debugging - Menampilkan pesan error yang diformat
+                echo "Error log to be sent to Discord: $formattedMessage"
+
+                // Siapkan payload untuk dikirim ke Discord
+                def payload = [
+                    content: formattedMessage
+                ]
+
+                // Debugging - Menampilkan payload yang akan dikirim ke Discord
+                echo "Payload to be sent: ${payload}"
+
+                // Mengirim payload ke Discord menggunakan webhook
+                sendDiscordMessage(DISCORD_WEBHOOK_URL, payload)
+            }
+        }
+    }
+}
+
+// Fungsi untuk mengirim pesan ke Discord
+def sendDiscordMessage(webhookUrl, payload) {
+    try {
+        def json = new groovy.json.JsonBuilder(payload).toString()
+        def conn = new URL(webhookUrl).openConnection()
+        conn.setRequestMethod("POST")
+        conn.doOutput = true
+        conn.setRequestProperty("Content-Type", "application/json")
+        conn.outputStream.write(json.getBytes("UTF-8"))
+
+        // Ambil respons dari Discord
+        def response = conn.inputStream.text
+        echo "Response from Discord: ${response}" // Debugging - Menampilkan respons dari Discord
+    } catch (Exception e) {
+        echo "Failed to send message to Discord: ${e.message}" // Debugging - Menangkap error jika gagal
+    }
+}
