@@ -28,15 +28,17 @@ describe('Login', () => {
       .click(); // Klik dropdown grup kompetensi
     cy.get('#react-select-4-option-1', timeout).click(); // Pilih opsi grup kompetensi pertama
 
+    //pilih nama kompetensi
     cy.get('.drop_nama > .css-58rwkm-control > .css-1khjq34 > .css-19bb58m', timeout)
       .should('be.visible') // Pastikan dropdown nama kompetensi terlihat
       .click(); // Klik dropdown nama kompetensi
     cy.get('#react-select-5-option-0', timeout).click(); // Pilih opsi kedua untuk nama kompetensi
 
+    //pilih level
     cy.get(':nth-child(9) > .Dropdown-root > .Dropdown-control > .Dropdown-placeholder', timeout)
       .should('be.visible') // Pastikan dropdown level terlihat
       .click(); // Klik dropdown level
-    cy.get('.Dropdown-menu > :nth-child(3)', timeout).click(); // Pilih opsi level pertama
+    cy.get('.Dropdown-menu > :nth-child(5)', timeout).click(); // Pilih opsi level pertama
 
     cy.get('.inputText_coqa', timeout).clear().type('30'); // Mengisi jumlah soal
 

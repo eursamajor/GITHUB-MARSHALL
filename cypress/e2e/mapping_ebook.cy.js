@@ -10,7 +10,7 @@ describe('Login and Test Operations', () => {
     cy.clearLocalStorage();
 
     // Perform the login before each test
-    cy.visit('https://dev.marshall-teach.web.id/');
+    cy.visit('https://stag.marshall-teach.web.id/');
     cy.get('#username', timeout).clear().type('risna');
     cy.get('#password', timeout).clear().type('telkomgoe');
     cy.get('.form > .btn', timeout).click();
@@ -19,7 +19,7 @@ describe('Login and Test Operations', () => {
   });
 
   it('Tes MAPPING EBOOK', () => {
-    cy.visit('https://dev.marshall-teach.web.id');
+    cy.visit('https://stag.marshall-teach.web.id');
 
     // Login
     cy.get('#username', timeout).clear().type('risna');

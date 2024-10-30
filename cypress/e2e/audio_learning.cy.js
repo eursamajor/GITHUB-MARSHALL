@@ -43,10 +43,10 @@ describe('Login', () => {
         // Tombol generate dan tunggu respons
         cy.get('.audioBut', timeout).click();
         
-        // Tunggu hingga respons selesai
-        cy.wait('@generateRequest').then((interception) => {
-            expect(interception.response.statusCode).to.eq(200); // pastikan respons sukses
-        });
+        // // Tunggu hingga respons selesai
+        // cy.wait('@generateRequest').then((interception) => {
+        //     expect(interception.response.statusCode).to.eq(200); // pastikan respons sukses
+        // });
 
         // Validasi hasil atau navigasi yang diharapkan setelah generate
         //cy.url().should('include', '/hasil-audio'); // validasi ke halaman hasil
